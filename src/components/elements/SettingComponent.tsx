@@ -12,7 +12,6 @@ import {
   MenuButton,
   MenuItemOption,
   MenuList,
-  MenuOptionGroup,
   Slider,
   SliderFilledTrack,
   SliderMark,
@@ -22,7 +21,7 @@ import {
   Tooltip,
   useColorMode,
 } from "@chakra-ui/react";
-import { FC, useEffect, useRef } from "react";
+import { FC, Fragment, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import {
   BoolSetting,
@@ -157,6 +156,35 @@ const DiscreteComponent: FC<SettingProps> = ({
   );
 };
 
+// Option keys with this prefix are UI-only section headers (e.g. the Konkr
+// keyboard passthrough list). They start a new MenuOptionGroup whose label
+// is the entry's value and are not selectable themselves.
+const SECTION_KEY_PREFIX = "hhd.section:";
+
+function buildOptionGroups(
+  options: Record<string, string>
+): { label: string; entries: [string, string][] }[] {
+  const groups: { label: string; entries: [string, string][] }[] = [];
+  let label = "";
+  let entries: [string, string][] = [];
+  const flush = () => {
+    if (entries.length) {
+      groups.push({ label, entries });
+      entries = [];
+    }
+  };
+  for (const [key, value] of Object.entries(options)) {
+    if (key.startsWith(SECTION_KEY_PREFIX)) {
+      flush();
+      label = value;
+    } else {
+      entries.push([key, value]);
+    }
+  }
+  flush();
+  return groups;
+}
+
 const MultipleComponent: FC<SettingProps> = ({
   settings: set,
   path,
@@ -176,6 +204,12 @@ const MultipleComponent: FC<SettingProps> = ({
     brightness: number;
   }>(path.substring(0, path.lastIndexOf(".")));
 
+  const groups = buildOptionGroups(options);
+  // Long dropdowns (e.g. the Konkr keyboard passthrough list) would otherwise
+  // render as one tall unbounded menu that overflows the screen; cap the
+  // height so MenuList scrolls internally.
+  const longList = groups.reduce((n, g) => n + g.entries.length, 0) > 12;
+
   return (
     <Flex
       flexDirection="column"
@@ -194,20 +228,40 @@ const MultipleComponent: FC<SettingProps> = ({
         >
           {state && options[state]}
         </MenuButton>
-        <MenuList zIndex={100}>
-          <MenuOptionGroup type="radio" value={state}>
-            {Object.entries(options).map(([value, label]) => {
-              return (
-                <MenuItemOption
-                  key={value}
-                  value={value}
-                  onClick={() => setState(value)}
+        <MenuList zIndex={100} {...(longList && { maxHeight: "55vh" })}>
+          {groups.map((group, gi) => (
+            <Fragment key={gi}>
+              {group.label && (
+                <li
+                  aria-hidden="true"
+                  style={{
+                    padding: "8px 16px 4px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    color: "rgba(255, 255, 255, 0.45)",
+                    userSelect: "none",
+                    pointerEvents: "none",
+                    listStyle: "none",
+                  }}
                 >
-                  {label}
-                </MenuItemOption>
-              );
-            })}
-          </MenuOptionGroup>
+                  {group.label}
+                </li>
+              )}
+              {group.entries.map(([value, label]) => {
+                return (
+                  <MenuItemOption
+                    key={value}
+                    value={value}
+                    onClick={() => setState(value)}
+                  >
+                    {label}
+                  </MenuItemOption>
+                );
+              })}
+            </Fragment>
+          ))}
         </MenuList>
       </Menu>
     </Flex>
