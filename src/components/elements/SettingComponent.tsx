@@ -10,7 +10,6 @@ import {
   Link,
   Menu,
   MenuButton,
-  MenuItemOption,
   MenuList,
   Slider,
   SliderFilledTrack,
@@ -21,7 +20,7 @@ import {
   Tooltip,
   useColorMode,
 } from "@chakra-ui/react";
-import { FC, Fragment, useEffect, useRef } from "react";
+import { FC, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import {
   BoolSetting,
@@ -40,9 +39,9 @@ import {
   buildOptionGroups,
   getButtonStyleNested,
   getFocusStyle,
-  MenuSectionHeader,
 } from "./utils";
 import CustomComponent from "./CustomComponent";
+import SectionedOptions from "./SectionedOptions";
 import qrcode from "qrcode";
 
 const BoolComponent: FC<SettingProps> = ({ settings: set, path, section }) => {
@@ -208,24 +207,11 @@ const MultipleComponent: FC<SettingProps> = ({
           zIndex={100}
           {...(longList && { maxHeight: "55vh", overflowY: "auto" })}
         >
-          {groups.map((group, gi) => (
-            <Fragment key={gi}>
-              {group.label && (
-                <MenuSectionHeader label={group.label} colorMode={colorMode} />
-              )}
-              {group.entries.map(([value, label]) => {
-                return (
-                  <MenuItemOption
-                    key={value}
-                    value={value}
-                    onClick={() => setState(value)}
-                  >
-                    {label}
-                  </MenuItemOption>
-                );
-              })}
-            </Fragment>
-          ))}
+          <SectionedOptions
+            options={options}
+            selected={state}
+            onPick={(value) => setState(value)}
+          />
         </MenuList>
       </Menu>
     </Flex>

@@ -7,21 +7,20 @@ import {
   FormLabel,
   Menu,
   MenuButton,
-  MenuItemOption,
   MenuList,
   Progress,
   Text,
   useColorMode,
 } from "@chakra-ui/react";
-import { FC, Fragment } from "react";
+import { FC } from "react";
 import { CustomSetting, ProgressProps, SettingProps } from "../../model/common";
 import { useElementNav, useSettingState } from "../../model/hooks";
 import {
   buildOptionGroups,
   getButtonStyleNested,
   getFocusStyle,
-  MenuSectionHeader,
 } from "./utils";
+import SectionedOptions from "./SectionedOptions";
 
 const ProgressComponent: FC<SettingProps> = ({ path, settings }) => {
   const { tags } = settings;
@@ -97,9 +96,9 @@ const DropdownComponent: FC<SettingProps> = ({
 
   const { options, value: svalue } = state;
   // "hhd.section:…" keys in a dynamic option list are UI-only section headers
-  // (see the daemon's Konkr key options): group them the same way
-  // MultipleComponent does so they render as non-interactive separators and
-  // are never submitted as a value.
+  // (see the daemon's Konkr key options): SectionedOptions turns labeled
+  // groups into expandable per-section rows so they are never submitted as
+  // values, while plain (unlabeled) lists render flat as before.
   const groups = buildOptionGroups(options);
   // Cap long menus so they scroll internally instead of overflowing the
   // screen (same as MultipleComponent); without overflowY the capped list
@@ -128,24 +127,13 @@ const DropdownComponent: FC<SettingProps> = ({
           zIndex={100}
           {...(longList && { maxHeight: "55vh", overflowY: "auto" })}
         >
-          {groups.map((group, gi) => (
-            <Fragment key={gi}>
-              {group.label && (
-                <MenuSectionHeader label={group.label} colorMode={colorMode} />
-              )}
-              {group.entries.map(([value, label]) => {
-                return (
-                  <MenuItemOption
-                    key={value}
-                    value={value}
-                    onClick={() => setState({ options: state.options, value })}
-                  >
-                    {label}
-                  </MenuItemOption>
-                );
-              })}
-            </Fragment>
-          ))}
+          <SectionedOptions
+            options={options}
+            selected={svalue}
+            onPick={(value) =>
+              setState({ options: state.options, value })
+            }
+          />
         </MenuList>
       </Menu>
     </Flex>
