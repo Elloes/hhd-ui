@@ -36,7 +36,12 @@ import {
 } from "../../model/hooks";
 import slice from "../../model/slice";
 import NumberComponent from "./NumberComponent";
-import { getButtonStyleNested, getFocusStyle } from "./utils";
+import {
+  buildOptionGroups,
+  getButtonStyleNested,
+  getFocusStyle,
+  MenuSectionHeader,
+} from "./utils";
 import CustomComponent from "./CustomComponent";
 import qrcode from "qrcode";
 
@@ -156,35 +161,6 @@ const DiscreteComponent: FC<SettingProps> = ({
   );
 };
 
-// Option keys with this prefix are UI-only section headers (e.g. the Konkr
-// keyboard passthrough list). They start a new MenuOptionGroup whose label
-// is the entry's value and are not selectable themselves.
-const SECTION_KEY_PREFIX = "hhd.section:";
-
-function buildOptionGroups(
-  options: Record<string, string>
-): { label: string; entries: [string, string][] }[] {
-  const groups: { label: string; entries: [string, string][] }[] = [];
-  let label = "";
-  let entries: [string, string][] = [];
-  const flush = () => {
-    if (entries.length) {
-      groups.push({ label, entries });
-      entries = [];
-    }
-  };
-  for (const [key, value] of Object.entries(options)) {
-    if (key.startsWith(SECTION_KEY_PREFIX)) {
-      flush();
-      label = value;
-    } else {
-      entries.push([key, value]);
-    }
-  }
-  flush();
-  return groups;
-}
-
 const MultipleComponent: FC<SettingProps> = ({
   settings: set,
   path,
@@ -228,26 +204,14 @@ const MultipleComponent: FC<SettingProps> = ({
         >
           {state && options[state]}
         </MenuButton>
-        <MenuList zIndex={100} {...(longList && { maxHeight: "55vh" })}>
+        <MenuList
+          zIndex={100}
+          {...(longList && { maxHeight: "55vh", overflowY: "auto" })}
+        >
           {groups.map((group, gi) => (
             <Fragment key={gi}>
               {group.label && (
-                <li
-                  aria-hidden="true"
-                  style={{
-                    padding: "8px 16px 4px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                    color: "rgba(255, 255, 255, 0.45)",
-                    userSelect: "none",
-                    pointerEvents: "none",
-                    listStyle: "none",
-                  }}
-                >
-                  {group.label}
-                </li>
+                <MenuSectionHeader label={group.label} colorMode={colorMode} />
               )}
               {group.entries.map(([value, label]) => {
                 return (

@@ -9,15 +9,19 @@ import {
   MenuButton,
   MenuItemOption,
   MenuList,
-  MenuOptionGroup,
   Progress,
   Text,
   useColorMode,
 } from "@chakra-ui/react";
-import { FC } from "react";
+import { FC, Fragment } from "react";
 import { CustomSetting, ProgressProps, SettingProps } from "../../model/common";
 import { useElementNav, useSettingState } from "../../model/hooks";
-import { getButtonStyleNested, getFocusStyle } from "./utils";
+import {
+  buildOptionGroups,
+  getButtonStyleNested,
+  getFocusStyle,
+  MenuSectionHeader,
+} from "./utils";
 
 const ProgressComponent: FC<SettingProps> = ({ path, settings }) => {
   const { tags } = settings;
@@ -92,6 +96,15 @@ const DropdownComponent: FC<SettingProps> = ({
   }
 
   const { options, value: svalue } = state;
+  // "hhd.section:…" keys in a dynamic option list are UI-only section headers
+  // (see the daemon's Konkr key options): group them the same way
+  // MultipleComponent does so they render as non-interactive separators and
+  // are never submitted as a value.
+  const groups = buildOptionGroups(options);
+  // Cap long menus so they scroll internally instead of overflowing the
+  // screen (same as MultipleComponent); without overflowY the capped list
+  // would be clipped and the wheel would still scroll the page.
+  const longList = groups.reduce((n, g) => n + g.entries.length, 0) > 12;
 
   return (
     <Flex
@@ -111,20 +124,28 @@ const DropdownComponent: FC<SettingProps> = ({
         >
           {svalue && options[svalue]}
         </MenuButton>
-        <MenuList zIndex={100}>
-          <MenuOptionGroup type="radio" value={svalue}>
-            {Object.entries(options).map(([value, label]) => {
-              return (
-                <MenuItemOption
-                  key={value}
-                  value={value}
-                  onClick={() => setState({ options: state.options, value })}
-                >
-                  {label}
-                </MenuItemOption>
-              );
-            })}
-          </MenuOptionGroup>
+        <MenuList
+          zIndex={100}
+          {...(longList && { maxHeight: "55vh", overflowY: "auto" })}
+        >
+          {groups.map((group, gi) => (
+            <Fragment key={gi}>
+              {group.label && (
+                <MenuSectionHeader label={group.label} colorMode={colorMode} />
+              )}
+              {group.entries.map(([value, label]) => {
+                return (
+                  <MenuItemOption
+                    key={value}
+                    value={value}
+                    onClick={() => setState({ options: state.options, value })}
+                  >
+                    {label}
+                  </MenuItemOption>
+                );
+              })}
+            </Fragment>
+          ))}
         </MenuList>
       </Menu>
     </Flex>

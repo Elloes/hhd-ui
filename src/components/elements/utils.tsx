@@ -1,3 +1,5 @@
+import { FC } from "react";
+
 const BRIGHTNESS_DEFAULT = 50;
 
 export const getFocusStyle = (f: boolean, mode: string) =>
@@ -291,3 +293,64 @@ export const getButtonStyleNested = (childTags: any, hsv: any) => {
   if (hsv && childTags.includes("rgb")) return getHsvStyle(hsv);
   return {};
 };
+
+// Option keys with this prefix are UI-only section headers (e.g. the Konkr
+// keyboard passthrough list from the daemon). They start a new group whose
+// label is the entry's value and are never selectable themselves.
+export const SECTION_KEY_PREFIX = "hhd.section:";
+
+export function buildOptionGroups(
+  options: Record<string, string>
+): { label: string; entries: [string, string][] }[] {
+  const groups: { label: string; entries: [string, string][] }[] = [];
+  let label = "";
+  let entries: [string, string][] = [];
+  const flush = () => {
+    if (entries.length) {
+      groups.push({ label, entries });
+      entries = [];
+    }
+  };
+  for (const [key, value] of Object.entries(options)) {
+    if (key.startsWith(SECTION_KEY_PREFIX)) {
+      flush();
+      label = value;
+    } else {
+      entries.push([key, value]);
+    }
+  }
+  flush();
+  return groups;
+}
+
+// Non-interactive section header row for a dropdown menu. Rendered as a
+// plain <li> (it must stay a direct child of the MenuList <ul> and must not
+// register as a menu item, so keyboard navigation skips it) with pointer
+// events disabled so a click passes through to the MenuList's outside-click
+// handler and closes the menu.
+export const MenuSectionHeader: FC<{ label: string; colorMode: string }> = ({
+  label,
+  colorMode,
+}) => (
+  <li
+    role="presentation"
+    aria-hidden="true"
+    aria-disabled="true"
+    style={{
+      padding: "8px 16px 4px",
+      fontSize: "12px",
+      fontWeight: 600,
+      letterSpacing: "0.05em",
+      textTransform: "uppercase",
+      color:
+        colorMode === "dark"
+          ? "rgba(255, 255, 255, 0.45)"
+          : "rgba(0, 0, 0, 0.45)",
+      userSelect: "none",
+      pointerEvents: "none",
+      listStyle: "none",
+    }}
+  >
+    {label}
+  </li>
+);
